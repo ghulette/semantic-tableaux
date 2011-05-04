@@ -25,7 +25,7 @@ data Expr = Atom Id
           | Xor Expr Expr
           | Eqv Expr Expr
           | Imp Expr Expr
-          deriving (Eq,Ord)
+          deriving (Eq,Ord,Show)
 
 eval :: Env -> Expr -> Bool
 eval env (Atom x) = 
@@ -74,14 +74,60 @@ closed u = do
   guard (isAllLiterals u)
   return (hasComplements u)
 
-buildTableu :: Set Expr -> Tableau
-buildTableu u = 
+tableauIsClosed :: Tableau -> Bool
+tableauIsClosed (Tree.Node (_,b) _) = b
+
+alpha :: Expr -> [Expr]
+alpha (Neg (Neg p))     = [p]
+alpha (p `And` q)       = [p,q]
+alpha (Neg (p `Or` q))  = [Neg p,Neg q]
+alpha (Neg (p `Imp` q)) = [p,Neg q]
+alpha (p `Eqv` q)       = [p `Imp` q,q `Imp` p]
+alpha (Neg (p `Xor` q)) = [p `Imp` q,q `Imp` p]
+alpha _                 = []
+
+beta :: Expr -> [Expr]
+beta (Neg (p `And` q))  = [Neg p,Neg q]
+beta (p `Or` q)         = [p,q]
+beta (p `Imp` q)        = [Neg p,q]
+beta (Neg (p `Eqv` q))  = [Neg (p `Imp` q),Neg (q `Imp` p)]
+beta (p `Xor` q)        = [Neg (p `Imp` q),Neg (q `Imp` p)]
+beta _                  = []
+
+buildTableau :: Set Expr -> Tableau
+buildTableau u = 
   case closed u of
     Just b -> Tree.Node (u,b) []
-    Nothing -> undefined
+    Nothing -> 
+      let (_,w) = Set.partition isLiteral u in
+      let x = Set.findMin w in
+      case alpha x of
+        [] -> 
+          case beta x of
+            [b1,b2] -> 
+              let 
+                u1 = (Set.delete x u) `Set.union` (Set.singleton b1)
+                u2 = (Set.delete x u) `Set.union` (Set.singleton b2)
+                t1 = buildTableau u1
+                t2 = buildTableau u2
+                b = and (map tableauIsClosed [t1,t2])
+              in
+                Tree.Node (u,b) [t1,t2]
+            _ -> error $ "Could not reduce " ++ (show x)
+        a -> 
+          let 
+            u' = (Set.delete x u) `Set.union` (Set.fromList a)
+            t = buildTableau u'
+            b = tableauIsClosed t
+          in
+            Tree.Node(u,b) [t]
 
-
+tableau :: Expr -> Tableau
+tableau = buildTableau . Set.singleton
 
 main :: IO ()
 main = do
-  putStrLn "ok"
+  let e = (Atom "p" `Or` Atom "q") `And` (Neg (Atom "p") `And` Neg (Atom "q"))
+  let t = tableau e
+  putStrLn $ Tree.drawTree $ fmap show t
+
