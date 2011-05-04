@@ -1,0 +1,13 @@
+Name:           Logic
+Version:        0.1
+Cabal-Version:  >= 1.2
+License:        BSD3
+Author:         Geoff Hulette
+Synopsis:       Logic Programming
+Build-Type:     Simple
+  
+Executable prop
+  Main-Is:        Main.hs
+  Hs-Source-Dirs: src
+  Build-Depends:  base >= 4,parsec >= 2,containers,mtl
+  GHC-Options:    -O2 -Wall
