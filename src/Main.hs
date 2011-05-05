@@ -15,4 +15,4 @@ main = do
   p <- parse input
   let t = tableau p
   when (satisfiable t) $ putStrLn $ (show p) ++ " is satisfiable"
-  putStrLn (drawTableau t)
+  putStrLn (draw t)

@@ -1,4 +1,4 @@
-module Tableau where
+module Tableau (Tableau,draw,tableau,satisfiable,isClosed) where
 
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -12,8 +12,8 @@ type Tableau = Tree (Set Expr,Bool)
 drawTabNode :: (Set Expr,Bool) -> String
 drawTabNode (u,b) = show (Set.toList u) ++ (if b then " Unsat" else " Sat")
 
-drawTableau :: Tableau -> String
-drawTableau = Tree.drawTree . fmap drawTabNode
+draw :: Tableau -> String
+draw = Tree.drawTree . fmap drawTabNode
 
 isLiteral :: Expr -> Bool
 isLiteral (Atom _) = True
@@ -39,59 +39,44 @@ closed u = do
   guard (isAllLiterals u)
   return (hasComplements u)
 
-tableauIsClosed :: Tableau -> Bool
-tableauIsClosed (Tree.Node (_,b) _) = b
+isClosed :: Tableau -> Bool
+isClosed (Tree.Node (_,b) _) = b
 
-alpha :: Expr -> [Expr]
-alpha (Neg (Neg p))     = [p]
-alpha (p `And` q)       = [p,q]
-alpha (Neg (p `Or` q))  = [Neg p,Neg q]
-alpha (Neg (p `Imp` q)) = [p,Neg q]
-alpha (p `Eqv` q)       = [p `Imp` q,q `Imp` p]
-alpha (Neg (p `Xor` q)) = [p `Imp` q,q `Imp` p]
-alpha _                 = []
+alpha :: [Expr] -> [Set Expr]
+alpha xs = [Set.fromList xs]
 
-beta :: Expr -> [Expr]
-beta (Neg (p `And` q))  = [Neg p,Neg q]
-beta (p `Or` q)         = [p,q]
-beta (p `Imp` q)        = [Neg p,q]
-beta (Neg (p `Eqv` q))  = [Neg (p `Imp` q),Neg (q `Imp` p)]
-beta (p `Xor` q)        = [Neg (p `Imp` q),Neg (q `Imp` p)]
-beta _                  = []
+beta :: [Expr] -> [Set Expr]
+beta = map Set.singleton
 
-buildTableau :: Set Expr -> Tableau
-buildTableau u = 
-  case closed u of
-    Just b -> Tree.Node (u,b) []
-    Nothing -> 
-      let (_,w) = Set.partition isLiteral u in
-      let x = Set.findMin w in
-      case alpha x of
-        [] -> 
-          case beta x of
-            [b1,b2] -> 
-              let 
-                u1 = (Set.delete x u) `Set.union` (Set.singleton b1)
-                u2 = (Set.delete x u) `Set.union` (Set.singleton b2)
-                t1 = buildTableau u1
-                t2 = buildTableau u2
-                b = and (map tableauIsClosed [t1,t2])
-              in
-                Tree.Node (u,b) [t1,t2]
-            _ -> error $ "Could not reduce " ++ (show x)
-        a -> 
-          let 
-            u' = (Set.delete x u) `Set.union` (Set.fromList a)
-            t = buildTableau u'
-            b = tableauIsClosed t
-          in
-            Tree.Node(u,b) [t]
+branch :: Expr -> [Set Expr]
+branch (Neg (Neg p))     = alpha [p]
+branch (p `And` q)       = alpha [p,q]
+branch (Neg (p `Or` q))  = alpha [Neg p,Neg q]
+branch (Neg (p `Imp` q)) = alpha [p,Neg q]
+branch (p `Eqv` q)       = alpha [p `Imp` q,q `Imp` p]
+branch (Neg (p `Xor` q)) = alpha [p `Imp` q,q `Imp` p]
+branch (Neg (p `And` q)) = beta  [Neg p,Neg q]
+branch (p `Or` q)        = beta  [p,q]
+branch (p `Imp` q)       = beta  [Neg p,q]
+branch (Neg (p `Eqv` q)) = beta  [Neg (p `Imp` q),Neg (q `Imp` p)]
+branch (p `Xor` q)       = beta  [Neg (p `Imp` q),Neg (q `Imp` p)]
+branch _                 = undefined
+
+build :: Set Expr -> Tableau
+build u = case closed u of
+  Just b -> Tree.Node (u,b) []
+  Nothing -> Tree.Node (u,b) ts
+    where (_,w) = Set.partition isLiteral u
+          x = Set.findMin w
+          u' = Set.delete x u
+          ts = map (build . Set.union u') (branch x)
+          b = and (map isClosed ts)
 
 tableau :: Expr -> Tableau
-tableau = buildTableau . Set.singleton
+tableau = build . Set.singleton
 
 satisfiable :: Tableau -> Bool
-satisfiable = not . tableauIsClosed
+satisfiable = not . isClosed
 
-valid :: Expr -> Bool
-valid e = tableauIsClosed $ tableau (Neg e)
+-- valid :: Expr -> Bool
+-- valid e = isClosed $ tableau (Neg e)
