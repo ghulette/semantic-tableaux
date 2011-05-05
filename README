@@ -1,0 +1,22 @@
+Semantic tableaux are a relatively efficient method for deciding
+satisfiability of logical formulas. This program accepts a formula in
+propositional logic on standard input and prints whether or not the formula is
+satisfiable. It also prints the constructed semantic tableau.
+
+See the examples directory for examples of formula syntax.
+
+The algorithm used here was adapted from the outline in Chapter 2 of
+Mathematical Logic for Computer Science by Mordechai Ben-Ari.
+
+Example usage:
+
+$ ./dist/build/tabl/tabl < examples/ex2.formula
+(p and (~q or ~p)) is satisfiable
+
+[(p and (~q or ~p))] Sat
+|
+`- [p,(~q or ~p)] Sat
+   |
+   +- [p,~q] Sat
+   |
+   `- [p,~p] Unsat
