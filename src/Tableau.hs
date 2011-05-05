@@ -89,3 +89,9 @@ buildTableau u =
 
 tableau :: Expr -> Tableau
 tableau = buildTableau . Set.singleton
+
+satisfiable :: Tableau -> Bool
+satisfiable = not . tableauIsClosed
+
+valid :: Expr -> Bool
+valid e = tableauIsClosed $ tableau (Neg e)

@@ -1,6 +1,7 @@
 import Expr
 import Parser
 import Tableau
+import Control.Monad (when)
 
 parse :: String -> IO Expr
 parse s = 
@@ -13,4 +14,5 @@ main = do
   input <- getContents
   p <- parse input
   let t = tableau p
+  when (satisfiable t) $ putStrLn $ (show p) ++ " is satisfiable"
   putStrLn (drawTableau t)
