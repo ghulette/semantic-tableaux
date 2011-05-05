@@ -1,0 +1,2 @@
+-- Satisfiable
+(p or q) and (~p and ~q)

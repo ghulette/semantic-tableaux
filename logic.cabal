@@ -3,10 +3,10 @@ Version:        0.1
 Cabal-Version:  >= 1.2
 License:        BSD3
 Author:         Geoff Hulette
-Synopsis:       Logic Programming
+Synopsis:       Experiments in Logic Programming
 Build-Type:     Simple
   
-Executable prop
+Executable tabl
   Main-Is:        Main.hs
   Hs-Source-Dirs: src
   Build-Depends:  base >= 4,parsec >= 2,containers,mtl
