@@ -13,7 +13,7 @@ drawTabNode :: (Set Expr,Bool) -> String
 drawTabNode (u,b) = show (Set.toList u) ++ (if b then " Unsat" else " Sat")
 
 drawTableau :: Tableau -> String
-drawTableau = (Tree.drawTree . fmap drawTabNode)
+drawTableau = Tree.drawTree . fmap drawTabNode
 
 isLiteral :: Expr -> Bool
 isLiteral (Atom _) = True
